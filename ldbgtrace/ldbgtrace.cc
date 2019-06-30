@@ -14,7 +14,11 @@
 #include <sys/mman.h>
 #include <libgen.h>
 
-#include "ldbgtrace.h"
+#include "ldbgtrace.hh"
+#include "sym_reader.hh"
+#include "trace_writer.hh"
+
+using namespace std;
 
 // enable record hit mode (default=disabled)
 unsigned int record_hits = 0;
@@ -54,10 +58,10 @@ long dbgtracer::get_base_address(char* module_name)
     return start;
 }
 
-void dbgtracer::set_batch_breakpoints(symbol_reader& reader, ulong imagebase)
+void dbgtracer::set_batch_breakpoints(ulong imagebase)
 {
     //TODO: how multiple modules supported?
-    std::vector<symbol_info_t*>& syms = reader.symbols();
+    std::vector<symbol_info_t*>& syms = _sym_reader.symbols();
     for(std::vector<symbol_info_t*>::iterator itr = syms.begin(); 
         itr != syms.end(); 
         itr++) {
@@ -66,7 +70,8 @@ void dbgtracer::set_batch_breakpoints(symbol_reader& reader, ulong imagebase)
             continue;
         
         if (verbose)
-            std::cout << "[bp] @ " << std::hex << sym_addr << " " << (*itr)->name << endl;
+            fprintf(stderr,
+                "[verbose] bp @ %016llx %s\n", sym_addr, (*itr)->name.c_str());
 
         ulong original=ptrace(PTRACE_PEEKTEXT, _pid, sym_addr, NULL), 
             breaktrap=0;
@@ -97,7 +102,9 @@ void dbgtracer::handle_break()
                 ptrace(PTRACE_POKETEXT, _pid, registers.rip, tinfo->original_word()) != -1);
             assert(
                 ptrace(PTRACE_SETREGS, _pid, NULL, &registers) >= 0);
-            printf("[trace] %016llx %s\n", registers.rip, tinfo->sym()->name.c_str());
+
+            // let custom writer write this message.
+            _trace_writer.write(tinfo);
         }
     }
 }
@@ -132,7 +139,7 @@ bool dbgtracer::trace(char** args, char** envp)
     
     ulong imagebase = get_base_address(basename(args[0]));
     nm_symbol_reader reader(is_pie); 
-    set_batch_breakpoints(reader, imagebase);
+    set_batch_breakpoints(imagebase);
     
     debugloop();
     
@@ -171,7 +178,7 @@ int main(int argc, char **argv, char **envp)
     while ((c = getopt (argc, argv, "pvhcm:")) != -1) {
         switch (c) {
             case 'p':
-                { is_pie = true; break; }
+                { is_pie = 1; break; }
             case 'v':
                 { verbose = true; break; }
             case 'h':
@@ -209,8 +216,17 @@ int main(int argc, char **argv, char **envp)
         strcpy(args[i], argv[index]);
     }
 
+    nm_symbol_reader s_reader(
+        is_pie
+    );
+    if (!s_reader.read("nm.out")) {
+        fprintf(stderr, "unable to open default nm.out symbol file\n");
+    }
+
+    plain_printer pp;
+
     // invoke dbgtracer 
-    dbgtracer dbg;
+    dbgtracer dbg(s_reader, pp);
     dbg.trace(args, envp);
 
     // cleanup
