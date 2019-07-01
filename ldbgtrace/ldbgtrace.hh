@@ -17,6 +17,7 @@ const uint MAP_SIZE  = 65536;
 const long FAKE_BASE = 0x40000000;
 
 typedef long long address_t;
+typedef std::pair<address_t, address_t> module_range_t;
 
 //
 // SYMBOL information with name and offset relative to image load. 
@@ -104,8 +105,8 @@ public:
     bool trace(unsigned int pid);
 
 private:
-    long get_base_address(char* module_name);
-    void set_batch_breakpoints(ulong imagebase);
+    module_range_t get_module_range(char* module_name);
+    void set_batch_breakpoints(module_range_t& module_range);
     void handle_break();
     void debugloop();
 private:

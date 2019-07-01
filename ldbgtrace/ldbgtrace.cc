@@ -34,7 +34,7 @@ bool disable_break_on_first_hit = true;
 
 /** address_t current arch IP */
 
-long dbgtracer::get_base_address(char* module_name)
+module_range_t dbgtracer::get_module_range(char* module_name)
 {
     FILE *fp;
     char filename[SYM_NAME];
@@ -57,19 +57,27 @@ long dbgtracer::get_base_address(char* module_name)
         }
     }
     fclose(fp);
-    return start;
+    return std::make_pair<address_t, address_t>(start, end);
 }
 
-void dbgtracer::set_batch_breakpoints(ulong imagebase)
+void dbgtracer::set_batch_breakpoints(module_range_t& module_range)
 {
     //TODO: how multiple modules supported?
+    address_t m_start = module_range.first, m_end = module_range.second;
     std::vector<symbol_info_t*>& syms = _sym_reader.symbols();
     for(std::vector<symbol_info_t*>::iterator itr = syms.begin(); 
         itr != syms.end(); 
         itr++) {
-        address_t sym_addr = is_pie? (*itr)->offset+imagebase : (*itr)->offset; 
+        address_t sym_addr = is_pie? (*itr)->offset+ m_start : (*itr)->offset; 
         if(_breaks.exists_key(sym_addr))
             continue;
+
+        if (!(sym_addr >= m_start && sym_addr <= m_end)) {
+            if (verbose)
+                fprintf(stderr, "[verbose] sym (%016llx) %s is outside text range\n",
+                    sym_addr, (*itr)->name.c_str());
+            continue;
+        }
 
         if (verbose) {
             fprintf(stderr, "[verbose] bp @ %016llx %s\n", 
@@ -153,10 +161,10 @@ bool dbgtracer::trace(char** args, char** envp)
 
     wait(&_w_status);
     
-    ulong imagebase = get_base_address(basename(args[0]));
+    module_range_t m_range = get_module_range(basename(args[0]));
     if (verbose)
-        fprintf(stderr, "[verbose] imagebase @ 0x%016lx\n", imagebase);
-    set_batch_breakpoints(imagebase);
+        fprintf(stderr, "[verbose] imagebase @ 0x%016llx-%016llx\n", m_range.first, m_range.second);
+    set_batch_breakpoints(m_range);
     
     debugloop();
 
