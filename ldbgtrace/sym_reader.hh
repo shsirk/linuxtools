@@ -12,8 +12,8 @@
 class nm_symbol_reader : public symbol_reader
 {
 public:
-    nm_symbol_reader(int is_pie):
-        _is_pie(is_pie) { }
+    nm_symbol_reader()
+         { }
     ~nm_symbol_reader() {
         for(
             std::vector<symbol_info_t*>::iterator itr = syms.begin(); 
@@ -29,7 +29,6 @@ public:
     bool read(const char* filepath);
 
 private:
-    int _is_pie;
     std::vector<symbol_info_t*> syms; 
 };
 

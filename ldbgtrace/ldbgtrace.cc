@@ -30,6 +30,8 @@ unsigned int is_pie = 0;
 // enable verbose mode
 unsigned int verbose = 0;
 
+bool disable_break_on_first_hit = true;
+
 /** address_t current arch IP */
 
 long dbgtracer::get_base_address(char* module_name)
@@ -65,13 +67,14 @@ void dbgtracer::set_batch_breakpoints(ulong imagebase)
     for(std::vector<symbol_info_t*>::iterator itr = syms.begin(); 
         itr != syms.end(); 
         itr++) {
-        address_t sym_addr = (*itr)->offset+imagebase; 
+        address_t sym_addr = is_pie? (*itr)->offset+imagebase : (*itr)->offset; 
         if(_breaks.exists_key(sym_addr))
             continue;
-        
-        if (verbose)
-            fprintf(stderr,
-                "[verbose] bp @ %016llx %s\n", sym_addr, (*itr)->name.c_str());
+
+        if (verbose) {
+            fprintf(stderr, "[verbose] bp @ %016llx %s\n", 
+                sym_addr, (*itr)->name.c_str());
+        }
 
         ulong original=ptrace(PTRACE_PEEKTEXT, _pid, sym_addr, NULL), 
             breaktrap=0;
@@ -79,7 +82,12 @@ void dbgtracer::set_batch_breakpoints(ulong imagebase)
         breaktrap = (original & ~0xff) | 0xcc;
         assert (
             ptrace(PTRACE_POKETEXT, _pid, sym_addr, breaktrap) >= 0);
-            
+
+        //if (verbose) {
+        //    fprintf(stderr, "[verbose] bp @ %016llx (%016lx) to (%016lx) %s\n", 
+        //        sym_addr, original, breaktrap, (*itr)->name.c_str());
+        //}
+
         _breaks.insert(sym_addr, new trace_info_t(
             original, breaktrap, *itr
         ));
@@ -89,23 +97,31 @@ void dbgtracer::set_batch_breakpoints(ulong imagebase)
 void dbgtracer::handle_break()
 {
     struct user_regs_struct registers;
+    address_t trace_loc = 0;
     assert(
         ptrace(PTRACE_GETREGS, _pid, NULL, &registers) >= 0);
 
     registers.rip--;
-    if(
-        _breaks.exists_key(registers.rip)
-    ) {
-        trace_info_t* tinfo = _breaks.value(registers.rip);
-        if(tinfo && tinfo->original_word() != 0) {
-            assert(
-                ptrace(PTRACE_POKETEXT, _pid, registers.rip, tinfo->original_word()) != -1);
-            assert(
-                ptrace(PTRACE_SETREGS, _pid, NULL, &registers) >= 0);
+    trace_loc = registers.rip;
+    assert(_breaks.exists_key(registers.rip));
 
-            // let custom writer write this message.
-            _trace_writer.write(tinfo);
-        }
+    trace_info_t* tinfo = _breaks.value(registers.rip);
+    assert(tinfo && tinfo->original_word() != 0);
+
+    assert(
+        ptrace(PTRACE_POKETEXT, _pid, registers.rip, tinfo->original_word()) != -1);
+    assert(
+        ptrace(PTRACE_SETREGS, _pid, NULL, &registers) >= 0);
+
+    // let custom writer write this message.
+    _trace_writer.write(tinfo);
+
+    if (!disable_break_on_first_hit) {
+        assert(
+            ptrace(PTRACE_SINGLESTEP, _pid, NULL, NULL) >= 0);
+        wait(NULL);      
+        assert(
+            ptrace(PTRACE_POKETEXT, _pid, trace_loc, tinfo->breaktrap_word()) >= 0);
     }
 }
 
@@ -138,10 +154,16 @@ bool dbgtracer::trace(char** args, char** envp)
     wait(&_w_status);
     
     ulong imagebase = get_base_address(basename(args[0]));
-    nm_symbol_reader reader(is_pie); 
+    if (verbose)
+        fprintf(stderr, "[verbose] imagebase @ 0x%016lx\n", imagebase);
     set_batch_breakpoints(imagebase);
     
     debugloop();
+
+    if (WIFEXITED(_w_status)) {
+        if (verbose)
+            fprintf(stderr, "[verbose] tracer completed!\n");
+    }
     
     return true;
 }
@@ -216,9 +238,7 @@ int main(int argc, char **argv, char **envp)
         strcpy(args[i], argv[index]);
     }
 
-    nm_symbol_reader s_reader(
-        is_pie
-    );
+    nm_symbol_reader s_reader;
     if (!s_reader.read("nm.out")) {
         fprintf(stderr, "unable to open default nm.out symbol file\n");
     }
@@ -231,7 +251,7 @@ int main(int argc, char **argv, char **envp)
 
     // cleanup
     for(index=0; index < i; index++)
-        free(args[i]);
+        free(args[index]);
     free(args);
 
     return 0;

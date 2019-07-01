@@ -23,7 +23,7 @@ bool nm_symbol_reader::read(const char* filepath)
         std::string name(sym_name);
         syms.push_back(
             new symbol_info_t(
-                _is_pie ? sym_start : (sym_start - FAKE_BASE),
+                sym_start,
                 name
             )
         );
