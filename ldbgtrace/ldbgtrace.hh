@@ -108,6 +108,7 @@ private:
     module_range_t get_module_range(char* module_name);
     void set_batch_breakpoints(module_range_t& module_range);
     void handle_break();
+    void handle_crash();
     void debugloop();
 private:
     pid_t _pid;

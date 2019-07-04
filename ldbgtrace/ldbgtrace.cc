@@ -32,6 +32,15 @@ unsigned int verbose = 0;
 
 bool disable_break_on_first_hit = true;
 
+static void fatal_error_report(const char* message)
+{
+  fprintf(stderr,
+          "\n=======================================================================================\n"
+          "[FATAL] %s\n"
+          "=========================================================================================\n"
+          ,message);
+}
+
 /** address_t current arch IP */
 
 module_range_t dbgtracer::get_module_range(char* module_name)
@@ -133,6 +142,11 @@ void dbgtracer::handle_break()
     }
 }
 
+void dbgtracer::handle_crash()
+{
+    fatal_error_report("target crashed unexpectedly, TODO: print more analysis");
+}
+
 void dbgtracer::debugloop()
 {
     while (true) {
@@ -143,6 +157,21 @@ void dbgtracer::debugloop()
 
         if (WIFSTOPPED(_w_status) && WSTOPSIG(_w_status) == SIGTRAP) 
             handle_break();
+        else if (WIFSIGNALED(_w_status)) {
+          switch(WTERMSIG(_w_status)) {
+          case SIGBUS:
+          case SIGILL:
+          case SIGSEGV:
+          case SIGFPE:
+          case SIGUSR1:
+          case SIGUSR2: handle_crash(); return;
+          case SIGTRAP:
+            fatal_error_report("target received unexpected trap from tracee, TODO: more analysis on it");
+            break;
+          default:
+            fatal_error_report("unexpected event caught! don't know why we've received this :|");
+          }
+        }
         else { break; } 
     }
 }

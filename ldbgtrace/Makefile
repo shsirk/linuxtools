@@ -7,5 +7,8 @@ debug:
 asan:
 	g++ -lasan -O -g -fsanitize=address -fno-omit-frame-pointer ldbgtrace.cc sym_reader.cc trace_writer.cc -o ldbgtrace
 
+static:
+	g++ ldbgtrace.cc sym_reader.cc trace_writer.cc -o ldbgtrace -static
+
 clean:
 	rm ldbgtrace
