@@ -17,4 +17,9 @@ TODO:
     6. more signals handling
     7. timeout support
     8. multi-threaded apps crashes on thread creation
-    
+        (Notes;
+            https://blog.codef00.com/2008/01/29/linuxs-ptrace-api-sucks
+            https://stackoverflow.com/questions/18577956/how-to-use-ptrace-to-get-a-consistent-view-of-multiple-threads
+            https://github.com/eteran/edb-debugger/issues/77
+         )
+         
