@@ -16,5 +16,5 @@ TODO:
     5. shared module coverage? (currently only support statically compiled)
     6. more signals handling
     7. timeout support
-    
+    8. multi-threaded apps crashes on thread creation
     

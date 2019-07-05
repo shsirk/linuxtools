@@ -217,7 +217,7 @@ void help()
     const char *text[] = {
         "linux process tracer using ptrace apis by @shsirk\n",
         "usage:",
-        "   ./ldbgtrace [-pvhcm] <exe_path>",
+        "   ./ldbgtrace [-pvhcm] -- <exe_path>",
         "   -p: enable if binary is pie enabled (default is OFF)",
         "   -v: verbose mode",
         "   -h: help",
@@ -233,8 +233,19 @@ void help()
 int main(int argc, char **argv, char **envp)
 {
     int c;
+    int app_cmd_index = 0;
     opterr = 0;
-    while ((c = getopt (argc, argv, "pvhcm:")) != -1) {
+
+    for(;app_cmd_index<argc; app_cmd_index++) {
+      if (strcmp(argv[app_cmd_index], "--") == 0) {
+        argv[app_cmd_index] = 0; break;
+      }
+    }
+    if (app_cmd_index == argc) {
+      help();
+    }
+
+    while ((c = getopt (app_cmd_index, argv, "pvhcm:")) != -1) {
         switch (c) {
             case 'p':
                 { is_pie = 1; break; }
@@ -265,9 +276,9 @@ int main(int argc, char **argv, char **envp)
     }
 
     //
-    // make execve arguments 
-    char** args = (char**)calloc((argc-optind+1), sizeof(char*));
-    int index = optind, i=0;
+    // make execve arguments
+    char** args = (char**)calloc((argc-app_cmd_index), sizeof(char*));
+    int index = app_cmd_index+1, i=0;
     for (; index < argc ; index++, i++) {
         args[i] = (char*)calloc(
             strlen(argv[index])+1, sizeof(char)
