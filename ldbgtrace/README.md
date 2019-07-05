@@ -14,8 +14,14 @@ TODO:
     3. support different symbol readers
     4. support different coverage analyzers
     5. shared module coverage? (currently only support statically compiled)
+	(Notes;
+	  currently in progrese. when ptraced to new process, we don't get loaded modules, look for ptrace clone option
+	 )
     6. more signals handling
     7. timeout support
+        (Notes;
+           currently done outside process using 'killall' command
+         ) 
     8. multi-threaded apps crashes on thread creation
         (Notes;
             https://blog.codef00.com/2008/01/29/linuxs-ptrace-api-sucks
@@ -23,3 +29,5 @@ TODO:
             https://github.com/eteran/edb-debugger/issues/77
          )
          
+    9. think of more optimization in symbol readers and trace writers
+    10. single load multi-trace-invocation provision (in case of generating more trace for input suite)

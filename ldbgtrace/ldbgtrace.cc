@@ -32,6 +32,8 @@ unsigned int verbose = 0;
 
 bool disable_break_on_first_hit = true;
 
+char *module_to_trace = NULL;
+
 static void fatal_error_report(const char* message)
 {
   fprintf(stderr,
@@ -49,7 +51,7 @@ module_range_t dbgtracer::get_module_range(char* module_name)
     char filename[SYM_NAME];
     char line[LINE_SIZE];
 
-    long start, end;
+    long start=0, end=0;
     char permissions[5];
     char str[LINE_SIZE];
     
@@ -59,12 +61,17 @@ module_range_t dbgtracer::get_module_range(char* module_name)
         fprintf(stderr, "error while reading %s\n",  filename);
         exit(1);
     }
-    while(fgets(line, 85, fp) != NULL) {
+
+    while(fgets(line, LINE_SIZE, fp) != NULL) {
         sscanf(line, "%lx-%lx %s %s %s %s %s", &start, &end, permissions, str, str, str, str);
         if(strstr(line, module_name) && strstr(permissions, "x")) {
-            break;
+          if(verbose)
+            fprintf(stderr, "[verbose] module range [%s] @ 0x%016lx-%016lx\n", str, start, end);
+          break;
         }
+        memset(line, 0, LINE_SIZE);
     }
+
     fclose(fp);
     return std::make_pair<address_t, address_t>(start, end);
 }
@@ -189,19 +196,17 @@ bool dbgtracer::trace(char** args, char** envp)
     }
 
     wait(&_w_status);
-    
-    module_range_t m_range = get_module_range(basename(args[0]));
-    if (verbose)
-        fprintf(stderr, "[verbose] imagebase @ 0x%016llx-%016llx\n", m_range.first, m_range.second);
+
+    module_range_t m_range = get_module_range(basename(module_to_trace));
     set_batch_breakpoints(m_range);
-    
+
     debugloop();
 
     if (WIFEXITED(_w_status)) {
         if (verbose)
             fprintf(stderr, "[verbose] tracer completed!\n");
     }
-    
+
     return true;
 }
 
@@ -256,7 +261,7 @@ int main(int argc, char **argv, char **envp)
             case 'c':
                 { record_hits = 1; break; }
             case 'm':
-                {  } //cvalue = optarg;
+                {  module_to_trace = optarg; break; }
             case '?':
                 if (optopt == 'c')
                     fprintf (stderr, "option -%c requires an argument.\n", optopt);
@@ -285,6 +290,9 @@ int main(int argc, char **argv, char **envp)
         ); 
         strcpy(args[i], argv[index]);
     }
+
+    if(!module_to_trace)
+      module_to_trace = args[0];
 
     nm_symbol_reader s_reader;
     if (!s_reader.read("nm.out")) {
