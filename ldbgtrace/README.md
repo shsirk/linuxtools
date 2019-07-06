@@ -5,6 +5,7 @@ Quick way to gather and analyze linux process coverage using ptrace-breakpoints 
 Usage:
    
    nm -C /path/to/bin > nm.out
+   
    ./ldbgtrace <ldbgargs> -- /path/to/bin <binargs>
 
 Notes:
