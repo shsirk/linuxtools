@@ -7,6 +7,7 @@
 #include <vector>
 #include <fstream>
 #include <iostream>
+#include <set>
 #include <string>
 #include <assert.h>
 using namespace std; 
@@ -105,17 +106,23 @@ public:
     bool trace(unsigned int pid);
 
 private:
-    module_range_t get_module_range(char* module_name);
-    void set_batch_breakpoints(module_range_t& module_range);
-    void handle_break();
+    module_range_t get_module_range(pid_t pid, char* module_name);
+    void set_batch_breakpoints(pid_t pid, module_range_t& module_range);
+    void handle_break(pid_t pid);
     void handle_crash();
-    void debugloop();
-private:
-    pid_t _pid;
-    int _w_status;
-    trace_map _breaks;
+    void debugloop(pid_t child);
 
+private:
+    // status of child 
+    int _w_status;
+    // all threads of the tracee including main thread
+    std::set<pid_t> _threads;
+
+    //breakpionts 
+    trace_map _breaks;
+    // external symbol reader
     symbol_reader& _sym_reader;
+    // external trace writer
     trace_writer& _trace_writer;
 };
 
