@@ -31,12 +31,6 @@ TODO:
 (Notes;
    currently done outside process using 'killall' command
  ) 
-8. multi-threaded apps crashes on thread creation
-(Notes;
-    https://blog.codef00.com/2008/01/29/linuxs-ptrace-api-sucks
-    https://stackoverflow.com/questions/18577956/how-to-use-ptrace-to-get-a-consistent-view-of-multiple-threads
-    https://github.com/eteran/edb-debugger/issues/77
- )
 
 9. think of more optimization in symbol readers and trace writers
 10. single load multi-trace-invocation provision (in case of generating more trace for input suite)
