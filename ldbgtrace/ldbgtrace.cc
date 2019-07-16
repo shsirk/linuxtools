@@ -215,9 +215,16 @@ void dbgtracer::debugloop(pid_t child)
             int code = WSTOPSIG(_w_status);
             switch(code) {
                 case SIGTRAP:
-                    handle_break(tid); break; 
+                    handle_break(tid); break;
+                case SIGSEGV:
+                case SIGABRT:
+                case SIGINT:
+                case SIGILL:
+                case SIGFPE:
+                case SIGTERM:
+                    handle_crash(); break; 
                 default:
-                    fatal_error_report("stopped by unknown code");
+                    break;
             }
         }
 

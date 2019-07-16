@@ -10,7 +10,7 @@ public:
     inline void write(trace_info_t *tinfo) {
         symbol_info_t* psym = tinfo->sym();
         fprintf(stderr, 
-                "[plain_printer] (%08lx) %s\n",
+                "[trace] (%08lx) %s\n",
                 psym->offset, psym->name.c_str());
     }
 };
