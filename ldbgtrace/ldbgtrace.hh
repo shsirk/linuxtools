@@ -1,3 +1,10 @@
+/*
+    Author: krishs.patil@gmail.com (twitter @shsirk)
+    
+    Binary coverage tool for linux
+    Record program execution using ptrace and breakpoints (int3)
+ */
+
 #ifndef __LDBG_TRACE_INCLUDES__
 #define __LDBG_TRACE_INCLUDES__
 

@@ -1,3 +1,10 @@
+/*
+    Author: krishs.patil@gmail.com (twitter @shsirk)
+    
+    Binary coverage tool for linux
+    Record program execution using ptrace and breakpoints (int3)
+ */
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
