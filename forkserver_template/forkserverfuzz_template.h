@@ -1,3 +1,6 @@
+#ifndef __FORKSERVER_TEMPLATE_H
+#define __FORKSERVER_TEMPLATE_H
+
 /*
     sample forkserver template for fuzzing program on linux. 
     krishs.patil@gmail.com (twitter @shsirk)
@@ -31,7 +34,7 @@
 #define REDIRCT_STREAMS 1 
 
 /* disable DIE_TIMEOUT if you don't want timeout kill! */
-#define DIE_TIMEOUT     3
+#define DIE_TIMEOUT     20
 
 #ifdef DIE_TIMEOUT
 /* store child information in case of killing it after timeout */
@@ -43,24 +46,6 @@ void handle_timeout_kill(int signum)
     kill(__childtask, SIGTERM);
 }
 #endif
-
-/* this simulates original main from program */
-int __run_main(int argc, const char** argv)
-{
-    int *crash = 0;
-    FILE *fp= fopen(TESTCASE_SRC, "r"); 
-    if (!fp)
-        return 1;
-    int foo; 
-    fscanf(fp, "%d", &foo);
-    fclose(fp);
-    if (foo == 7) {
-        *crash = 0xdead;
-    } else if(foo == 4) {
-        sleep(30);
-    }
-    printf("__run_main: read: %d\n", foo);
-}
 
 /* copy file routine */
 static int copy_file(const char *to, const char *from)
@@ -148,7 +133,7 @@ int is_sanitizer_crash()
     return res;
 }
 
-int fork_fuzz(int argc, const char**argv) 
+int fork_fuzz(int argc, char**argv) 
 {
     struct dirent *entry = 0;
     DIR *dp = 0;
@@ -183,7 +168,7 @@ int fork_fuzz(int argc, const char**argv)
             dup2(fd, 2);
 #endif  
             /* run original main forwarding command line args */
-            __run_main(argc, argv);
+            main_jsc(argc, argv);
 #ifdef REDIRCT_STREAMS
             close(fd);
 #endif
@@ -227,7 +212,9 @@ int fork_fuzz(int argc, const char**argv)
     return 0;
 }
 
-int main(int argc, const char**argv) 
+int main(int argc, char**argv) 
 {
     fork_fuzz(argc, argv);
 }
+
+#endif
