@@ -6,16 +6,19 @@
     krishs.patil@gmail.com (twitter @shsirk)
     
     how to use it - 
-        manually patch this into program's main src file (call original main in place of __run_main)
-        loop:
-            store testcases in corpus directory
-            run program.
-        goto loop  
+        1. manually patch this into program's main src file (call original main in place of __run_main)
+        2. loop:
+                store testcases in corpus directory
+                run program.
+            goto loop
+        3. use export FORKSERVER_FUZZ=1 when fuzzing
+        4. uset FORKSERVER_FUZZ when you don't want to use forkserver.
     note:
         1. once executed it removes testcase from corpus 
         2. crash stored in CRASH_[testcase] file name format. (use md5 for testcase names while generating)
  */
 #include <stdio.h>
+#include <stdlib.h>
 #include <dirent.h>
 #include <fcntl.h>
 #include <unistd.h>
@@ -29,6 +32,8 @@
 #define STREAM_OUT      "./stream.out"     /* redirect stdout/stderr to local file for asan messages */
 #define TESTCASE_SRC    "./testcase"     /* testcase path passed to JSC as command line. */
 #define CRASH_FMT       "./CRASH_%s"
+
+#define APP_MAIN        my_main
 
 /* disable this if you don't want to redirect child stdout/stderr in STREAM_OUT */
 #define REDIRCT_STREAMS 1 
@@ -168,7 +173,7 @@ int fork_fuzz(int argc, char**argv)
             dup2(fd, 2);
 #endif  
             /* run original main forwarding command line args */
-            main_jsc(argc, argv);
+            APP_MAIN(argc, argv);
 #ifdef REDIRCT_STREAMS
             close(fd);
 #endif
@@ -214,7 +219,13 @@ int fork_fuzz(int argc, char**argv)
 
 int main(int argc, char**argv) 
 {
-    fork_fuzz(argc, argv);
+    if(getenv("FORKSERVER_FUZZ")) {
+        printf("%s running in forkserver mode\n", argv[0]);
+        fork_fuzz(argc, argv);
+    }else {
+        printf("%s running in normal mode\n", argv[0]);
+        APP_MAIN(argc, argv);
+    }
 }
 
 #endif
