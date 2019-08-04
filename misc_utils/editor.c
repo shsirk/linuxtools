@@ -29,10 +29,7 @@ int main(int argc, char** argv, char** env)
         fileline,
         0,
     };
-    pid_t pid = fork(); 
-    if (pid == 0) {
-        execve(args[0], args, env);
-    }
+    execve(args[0], args, env);
 
     return 0;
 }
