@@ -20,6 +20,7 @@ fi
 ulimit -c unlimited
 
 export ASAN_OPTIONS=detect_leaks=0
+export FORKSERVER_FUZZ=1
 
 while true
 do
