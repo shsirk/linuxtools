@@ -69,9 +69,9 @@ int main(int argc, const char * argv[], char* env[])
             WSTOPSIG(status)
         );
 
-    } else if (WIFSIGNALED(status) && is_crash_signal(WTERMSIG(status))) {
+    } else if (WIFSIGNALED(status) && WTERMSIG(status) == SIGTERM) {
         snprintf(
-            buf, 1024, "[CRASH!] child signaled with signal code %08d\n",
+            buf, 1024, "[TERMINATED!] child signaled with signal code %08d\n",
             WTERMSIG(status)
         );
     }
