@@ -27,7 +27,7 @@ int is_crash_signal(int code)
         // SIGTERM? how about killing of timeout process externally?
         // kilall all generates SIGTERM (may result false alarm here)
         // Externally or internally killing child we can use SIGKILL (kill -9 pid_of_child)
-        case SIGTERM:  
+        //case SIGTERM:  
             return 1;
         default:
             return 0;
